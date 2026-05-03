@@ -1,0 +1,46 @@
+.node circle {
+    fill: #69b3a2;
+    stroke: #555;
+    stroke-width: 2px;
+    transition: transform 0.3s;
+}
+
+.node circle:hover {
+    transform: scale(1.2);
+}
+
+.node text {
+    font: 12px sans-serif;
+    fill: #333;
+}
+
+.link {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 2px;
+    transition: stroke 0.3s ease;
+}
+
+.link:hover {
+    stroke-width: 3px;
+}
+
+.link {
+    stroke: #888;
+    stroke-width: 2px;
+}
+
+.link.highlight {
+    stroke: red;
+    stroke-width: 4px;
+}
+
+.node circle {
+    fill: #69b3a2;
+    stroke: #333;
+    stroke-width: 1px;
+}
+
+.node.highlight circle {
+    fill: red;
+}

@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diabetes Prediction</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        main {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        #predictionForm {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon {
+            font-size: 1.2rem;
+        }
+
+        input {
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        input:hover {
+            border-color: #b8c5f0;
+        }
+
+        button[type="button"] {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            margin-top: 10px;
+        }
+
+        button[type="button"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        button[type="button"]:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            background: white;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: fadeInUp 0.5s ease;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result.positive {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .result.negative {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .result-details {
+            margin-top: 15px;
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        #visualizeTreeButton {
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        #visualizeTreeButton.show {
+            display: block;
+        }
+
+        #visualizeButton {
+            padding: 14px 40px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #visualizeButton:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .info-text {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            margin-top: 30px;
+            font-size: 0.9rem;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            #predictionForm {
+                padding: 25px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+    
+    <header>
+        <h1>🏥 Diabetes Prediction Tool</h1>
+        <p>Enter your health metrics for an AI-powered diabetes risk assessment</p>
+    </header>
+
+    <main>
+        <form id="predictionForm">
+            <div class="form-grid">
+                <div class="input-group">
+                    <label for="pregnancies">
+                        <span class="icon">🤰</span>
+                        Pregnancies
+                    </label>
+                    <input type="number" id="pregnancies" name="pregnancies" placeholder="0-20" required min="0">
+                </div>
+
+                <div class="input-group">
+                    <label for="glucose">
+                        <span class="icon">🩸</span>
+                        Glucose Level
+                    </label>
+                    <input type="number" id="glucose" name="glucose" placeholder="mg/dL" required min="0">
+                </div>
+
+                <div class="input-group">
+                    <label for="bloodPressure">
+                        <span class="icon">💓</span>
+                        Blood Pressure
+                    </label>
+                    <input type="number" id="bloodPressure" name="bloodPressure" placeholder="mmHg" required min="0">
+                </div>
+
+                <div class="input-group">
+                    <label for="skinThickness">
+                        <span class="icon">📏</span>
+                        Skin Thickness
+                    </label>
+                    <input type="number" id="skinThickness" name="skinThickness" placeholder="mm" required min="0">
+                </div>
+
+                <div class="input-group">
+                    <label for="insulin">
+                        <span class="icon">💉</span>
+                        Insulin Level
+                    </label>
+                    <input type="number" id="insulin" name="insulin" placeholder="µU/mL" required min="0">
+                </div>
+
+                <div class="input-group">
+                    <label for="bmi">
+                        <span class="icon">⚖️</span>
+                        BMI
+                    </label>
+                    <input type="number" step="0.1" id="bmi" name="bmi" placeholder="kg/m²" required min="0">
+                </div>
+
+                <div class="input-group">
+                    <label for="diabetesPedigree">
+                        <span class="icon">🧬</span>
+                        Diabetes Pedigree
+                    </label>
+                    <input type="number" step="0.01" id="diabetesPedigree" name="diabetesPedigree" placeholder="0.00 - 2.50" required min="0">
+                </div>
+
+                <div class="input-group">
+                    <label for="age">
+                        <span class="icon">🎂</span>
+                        Age
+                    </label>
+                    <input type="number" id="age" name="age" placeholder="Years" required min="0" max="120">
+                </div>
+            </div>
+
+            <button type="button" onclick="predictDiabetes()">
+                🔍 Analyze Health Metrics
+            </button>
+        </form>
+
+        <div id="result" class="result"></div>
+        
+        <div id="visualizeTreeButton">
+            <button id="visualizeButton">
+                📊 Visualize Decision Trees
+            </button>
+        </div>
+
+        <p class="info-text">
+            ⚠️ This tool uses machine learning for educational purposes only. Always consult healthcare professionals for medical advice.
+        </p>
+    </main>
+
+    <script>
+        let decisionTrees = [];
+        let treeFiles = [];
+    
+        // Dynamically discover available tree files
+        async function discoverTrees() {
+            treeFiles = [];
+            let treeIndex = 1;
+            
+            while (true) {
+                try {
+                    const response = await fetch(`JSON/tree_${treeIndex}.json`);
+                    if (response.ok) {
+                        treeFiles.push(`JSON/tree_${treeIndex}.json`);
+                        treeIndex++;
+                    } else {
+                        break;
+                    }
+                } catch (error) {
+                    break;
+                }
+            }
+            
+            console.log(`Discovered ${treeFiles.length} tree(s)`);
+            return treeFiles;
+        }
+    
+        async function loadTrees() {
+            await discoverTrees();
+            
+            if (treeFiles.length === 0) {
+                console.error("No trees found in JSON/ directory");
+                return;
+            }
+            
+            const promises = treeFiles.map(file =>
+                fetch(file).then(res => res.json())
+            );
+            decisionTrees = await Promise.all(promises);
+            console.log("Decision trees loaded", decisionTrees);
+        }
+    
+        function traverseTree(tree, input) {
+            let path = [];
+            let currentNode = tree;
+    
+            while (currentNode.label === null) {
+                path.push(currentNode.nodeIndex);
+    
+                const feature = input[currentNode.featureIndex];
+                if (feature < currentNode.threshold) {
+                    currentNode = currentNode.left;
+                } else {
+                    currentNode = currentNode.right;
+                }
+            }
+    
+            path.push(currentNode.nodeIndex);
+            return { label: currentNode.label, path };
+        }
+    
+        async function predictDiabetes() {
+            const button = document.querySelector('button[type="button"]');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="loading"></span> Analyzing...';
+            button.disabled = true;
+
+            if (!decisionTrees.length) {
+                await loadTrees();
+            }
+    
+            const input = {
+                0: +document.getElementById("pregnancies").value,
+                1: +document.getElementById("glucose").value,
+                2: +document.getElementById("bloodPressure").value,
+                3: +document.getElementById("skinThickness").value,
+                4: +document.getElementById("insulin").value,
+                5: +document.getElementById("bmi").value,
+                6: +document.getElementById("diabetesPedigree").value,
+                7: +document.getElementById("age").value
+            };
+    
+            let votes = { 0: 0, 1: 0 };
+            let paths = {};
+    
+            decisionTrees.forEach((tree, index) => {
+                const { label, path } = traverseTree(tree, input);
+                votes[label]++;
+                paths[`tree_${index + 1}`] = path;
+            });
+    
+            // Store paths in localStorage for visualization page
+            localStorage.setItem("decisionPaths", JSON.stringify(paths));
+    
+            const resultDiv = document.getElementById("result");
+            const hasDiabetes = votes[1] > votes[0];
+            
+            resultDiv.className = `result show ${hasDiabetes ? 'positive' : 'negative'}`;
+            resultDiv.innerHTML = `
+                <div style="font-size: 2.5rem; margin-bottom: 10px;">
+                    ${hasDiabetes ? '⚠️' : '✅'}
+                </div>
+                <div style="font-size: 1.5rem; margin-bottom: 10px;">
+                    ${hasDiabetes ? 'Diabetes Risk Detected' : 'No Diabetes Risk'}
+                </div>
+                <div class="result-details">
+                    Forest Vote: ${votes[1]} trees predict diabetes, ${votes[0]} predict no diabetes
+                </div>
+            `;
+    
+            document.getElementById("visualizeTreeButton").className = "show";
+            
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    
+        document.getElementById("visualizeButton").addEventListener("click", () => {
+            window.location.href = "visualize.html";
+        });
+    
+        loadTrees();
+    </script> 
+</body>
+</html>

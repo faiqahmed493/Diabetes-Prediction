@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Tree Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .back-button {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            transform: translateY(-50%) scale(1.05);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .feature-box {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .feature-box p {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-box ul {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+            list-style: none;
+        }
+
+        .feature-box li {
+            padding: 10px 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .feature-box li:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-box strong {
+            color: #764ba2;
+        }
+
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .tree-button {
+            padding: 12px 30px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tree-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .tree-button:hover::before {
+            left: 0;
+        }
+
+        .tree-button:hover {
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .tree-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+        }
+
+        #tree {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow-x: auto;
+            animation: fadeInUp 1s ease;
+            min-height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #tree:empty::before {
+            content: '👆 Select a tree to visualize';
+            font-size: 1.5rem;
+            color: #999;
+            text-align: center;
+        }
+
+        .link {
+            fill: none;
+            transition: all 0.3s ease;
+        }
+
+        .node circle {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .node:hover circle {
+            r: 8;
+            stroke-width: 3;
+        }
+
+        .node text {
+            pointer-events: none;
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+        }
+
+        .legend {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .legend-circle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid black;
+        }
+
+        .legend-line {
+            width: 40px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            .back-button {
+                position: static;
+                transform: none;
+                margin-bottom: 15px;
+                display: block;
+                width: fit-content;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .feature-box ul {
+                grid-template-columns: 1fr;
+            }
+
+            .button-container {
+                gap: 10px;
+            }
+
+            .tree-button {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+        }
+
+        .stats-box {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            animation: fadeInUp 0.7s ease;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <a href="index.html" class="back-button">← Back to Prediction</a>
+        <h1>🌳 Decision Tree Visualization</h1>
+    </header>
+
+    <div class="container">
+        <div class="stats-box" id="statsBox" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-number" id="totalNodes">-</div>
+                <div class="stat-label">Total Nodes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="treeDepth">-</div>
+                <div class="stat-label">Tree Depth</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="leafNodes">-</div>
+                <div class="stat-label">Leaf Nodes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pathLength">-</div>
+                <div class="stat-label">Decision Path Length</div>
+            </div>
+        </div>
+
+        <div class="feature-box">
+            <p>📋 <strong>Feature Mapping</strong></p>
+            <ul>
+                <li><strong>F0:</strong> Pregnancies 🤰</li>
+                <li><strong>F1:</strong> Glucose 🩸</li>
+                <li><strong>F2:</strong> Blood Pressure 💓</li>
+                <li><strong>F3:</strong> Skin Thickness 📏</li>
+                <li><strong>F4:</strong> Insulin 💉</li>
+                <li><strong>F5:</strong> BMI ⚖️</li>
+                <li><strong>F6:</strong> Diabetes Pedigree 🧬</li>
+                <li><strong>F7:</strong> Age 🎂</li>
+            </ul>
+        </div>
+
+        <div class="button-container" id="buttonContainer"></div>
+
+        <div id="tree"></div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-circle" style="background: #69b3a2;"></div>
+                <span>Regular Node</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-circle" style="background: #FF5733;"></div>
+                <span>Decision Path</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line" style="background: #888;"></div>
+                <span>Regular Link</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line" style="background: #FF5733;"></div>
+                <span>Active Path</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let decisionTrees = [];
+        let decisionPaths = {};
+        let currentActiveButton = null;
+        let treeFiles = [];
+    
+        // Dynamically discover available tree files
+        async function discoverTrees() {
+            treeFiles = [];
+            let treeIndex = 1;
+            
+            while (true) {
+                try {
+                    const response = await fetch(`JSON/tree_${treeIndex}.json`);
+                    if (response.ok) {
+                        treeFiles.push(`JSON/tree_${treeIndex}.json`);
+                        treeIndex++;
+                    } else {
+                        break;
+                    }
+                } catch (error) {
+                    break;
+                }
+            }
+            
+            console.log(`Discovered ${treeFiles.length} tree(s)`);
+            
+            if (treeFiles.length === 0) {
+                document.getElementById('tree').innerHTML = `
+                    <div style="text-align: center; color: #999; padding: 40px;">
+                        <div style="font-size: 3rem; margin-bottom: 20px;">🌳</div>
+                        <div style="font-size: 1.5rem; margin-bottom: 10px;">No Trees Found</div>
+                        <div>Please train the model first to generate decision trees</div>
+                    </div>
+                `;
+            }
+            
+            return treeFiles;
+        }
+    
+        async function loadTrees() {
+            await discoverTrees();
+            
+            if (treeFiles.length === 0) {
+                return;
+            }
+            
+            const promises = treeFiles.map(file =>
+                fetch(file).then(res => res.json())
+            );
+            decisionTrees = await Promise.all(promises);
+            console.log("Decision trees loaded for visualization", decisionTrees);
+        }
+
+        function calculateTreeStats(tree, path) {
+            let nodeCount = 0;
+            let leafCount = 0;
+            let maxDepth = 0;
+
+            function traverse(node, depth = 0) {
+                if (!node) return;
+                nodeCount++;
+                maxDepth = Math.max(maxDepth, depth);
+                
+                if (node.label !== null) {
+                    leafCount++;
+                    return;
+                }
+                
+                traverse(node.left, depth + 1);
+                traverse(node.right, depth + 1);
+            }
+
+            traverse(tree);
+
+            document.getElementById('totalNodes').textContent = nodeCount;
+            document.getElementById('treeDepth').textContent = maxDepth;
+            document.getElementById('leafNodes').textContent = leafCount;
+            document.getElementById('pathLength').textContent = path.length;
+            document.getElementById('statsBox').style.display = 'grid';
+        }
+    
+        function drawTree(tree, path) {
+            const treeContainer = d3.select("#tree").html("");
+            const width = 1200, height = 4000;
+            const xOffset = 100;
+
+            const svg = treeContainer.append("svg")
+                .attr("width", width)
+                .attr("height", height);
+
+            const root = d3.hierarchy(tree, d => d.left || d.right ? [d.left, d.right] : []);
+            const treeLayout = d3.tree().size([height - 100, width - 200]);
+            const nodes = treeLayout(root); 
+
+            // Links
+            svg.selectAll(".link")
+                .data(nodes.links())
+                .join("path")
+                .attr("class", "link")
+                .attr("d", d3.linkHorizontal()
+                    .x(d => d.y + xOffset)
+                    .y(d => d.x))
+                .style("stroke", "#888")
+                .style("stroke-width", 3)
+                .style("stroke-dasharray", "none");
+                
+            setTimeout(() => {
+                d3.selectAll('.link')
+                .transition()
+                .duration(1000)
+                .style("stroke-width", d => path.includes(d.target.data.nodeIndex) ? 6 : 3)
+                .style("stroke", d => path.includes(d.target.data.nodeIndex) ? "#FF5733" : "#888");
+            }, 1500);
+
+            // Nodes
+            const nodesGroup = svg.selectAll(".node")
+                .data(nodes.descendants())
+                .join("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.y + xOffset}, ${d.x})`);
+
+            nodesGroup.append("circle")
+                .attr("r", 7)
+                .style("fill", "#69b3a2")
+                .style("stroke", "black")
+                .style("stroke-width", 2);
+                
+            nodesGroup.append("text")
+                .attr("dy", "-1.5em")
+                .attr("text-anchor", "middle")
+                .text(d => d.data.label !== null
+                    ? `✓ Label: ${d.data.label}`
+                    : `F${d.data.featureIndex} < ${d.data.threshold.toFixed(2)}`)
+                .style("font", "13px sans-serif")
+                .style("fill", "black");
+                
+            setTimeout(() => {
+                d3.selectAll('.node circle') 
+                .transition()
+                .duration(1000)
+                .attr("r", d => path.includes(d.data.nodeIndex) ? 9 : 7)
+                .style("fill", d => path.includes(d.data.nodeIndex) ? "#FF5733" : "#69b3a2")
+                .style("stroke-width", d => path.includes(d.data.nodeIndex) ? 3 : 2);
+
+                d3.selectAll('.node text')
+                .transition()
+                .duration(1000)
+                .style("fill", d => path.includes(d.data.nodeIndex) ? "#FF5733" : "black")
+                .style("font-weight", d => path.includes(d.data.nodeIndex) ? "bold" : "600");
+            }, 1500);
+
+            if (!nodes.descendants().length) {
+                console.warn("Tree has no nodes or is improperly structured.");
+            }
+
+            calculateTreeStats(tree, path);
+        }
+
+        function setupVisualization() {
+            decisionPaths = JSON.parse(localStorage.getItem("decisionPaths"));
+            const buttonContainer = document.getElementById("buttonContainer");
+    
+            treeFiles.forEach((file, index) => {
+                const button = document.createElement("button");
+                button.textContent = `Tree ${index + 1}`;
+                button.className = "tree-button";
+                button.addEventListener("click", () => {
+                    if (currentActiveButton) {
+                        currentActiveButton.classList.remove('active');
+                    }
+                    button.classList.add('active');
+                    currentActiveButton = button;
+                    drawTree(decisionTrees[index], decisionPaths[`tree_${index + 1}`]);
+                });
+                buttonContainer.appendChild(button);
+            });
+        }
+    
+        (async function initialize() {
+            await loadTrees();
+            setupVisualization();
+        })();
+    </script>
+    
+</body>
+</html>
