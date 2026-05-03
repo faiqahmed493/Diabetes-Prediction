@@ -95,7 +95,7 @@ This project implements a complete machine learning pipeline for diabetes predic
 ![Prediction Interface](images/from-page.png)
 
 ### Decision Tree Visualization
-![Tree Visualization](images/demo-tree.png)
+![Tree Visualization](images/tree-page.png)
 
 ---
 
